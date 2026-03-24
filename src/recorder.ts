@@ -123,6 +123,22 @@ export function downloadBlob(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 30_000)
 }
 
+export function blobFromCanvas(canvas: HTMLCanvasElement, type = 'image/png', quality?: number) {
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error('Failed to encode canvas blob.'))
+          return
+        }
+        resolve(blob)
+      },
+      type,
+      quality
+    )
+  })
+}
+
 function cleanupStream(stream: MediaStream | null) {
   if (!stream) return
   for (const t of stream.getTracks()) t.stop()

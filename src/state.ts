@@ -38,6 +38,13 @@ export interface SceneConfig {
 export const CANVAS_WIDTH = 1920
 export const CANVAS_HEIGHT = 1080
 export const CAPTURE_FPS = 60
+export const EXPORT_DPR = 2
+export const EXPORT_MIN_FPS = 1
+export const EXPORT_MAX_FPS = 120
+export const EXPORT_MIN_DURATION = 0.25
+export const EXPORT_MAX_DURATION = 120
+export const EXPORT_MIN_DPR = 1
+export const EXPORT_MAX_DPR = 4
 
 export const DEFAULT_EFFECT: EffectConfig = {
   name: 'Effect 1',
@@ -71,6 +78,23 @@ export const DEFAULT_SCENE: SceneConfig = {
 
 export function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n))
+}
+
+export interface RenderSettings {
+  fps: number
+  duration: number
+  width: number
+  height: number
+  dpr: number
+}
+
+export function sanitizeRenderSettings(input: Partial<RenderSettings>): RenderSettings {
+  const fps = clamp(Math.round(Number(input.fps ?? CAPTURE_FPS)), EXPORT_MIN_FPS, EXPORT_MAX_FPS)
+  const duration = clamp(Number(input.duration ?? DEFAULT_EFFECT.durationSeconds), EXPORT_MIN_DURATION, EXPORT_MAX_DURATION)
+  const width = Math.max(1, Math.round(Number(input.width ?? CANVAS_WIDTH)))
+  const height = Math.max(1, Math.round(Number(input.height ?? CANVAS_HEIGHT)))
+  const dpr = clamp(Number(input.dpr ?? EXPORT_DPR), EXPORT_MIN_DPR, EXPORT_MAX_DPR)
+  return { fps, duration, width, height, dpr }
 }
 
 export function sanitizeEffect(input: Partial<EffectConfig>): EffectConfig {

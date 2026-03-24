@@ -2,15 +2,18 @@ import './styles.css'
 
 import { createConfettiInstance, playConfetti, PRESETS, type PlaybackHandle } from './confetti'
 import { CanvasRecorder, downloadBlob } from './recorder'
+import { exportPngSequenceZip } from './pngSequence'
 import {
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
   CAPTURE_FPS,
   DEFAULT_EFFECT,
   DEFAULT_SCENE,
+  EXPORT_DPR,
   paletteFromText,
   paletteToText,
   sanitizeEffect,
+  sanitizeRenderSettings,
   sanitizeScene,
   type EffectConfig,
   type SceneConfig,
@@ -24,7 +27,7 @@ app.innerHTML = `
   <div class="topbar">
     <div>
       <h1>Confetti Video Maker</h1>
-      <div class="hint">Capture is fixed at <span class="mono">${CANVAS_WIDTH}×${CANVAS_HEIGHT}</span> @ <span class="mono">60fps</span> (download WebM).</div>
+      <div class="hint">Capture is fixed at <span class="mono">${CANVAS_WIDTH}×${CANVAS_HEIGHT}</span> @ <span class="mono">60fps</span> (download WebM or PNG ZIP).</div>
     </div>
     <div class="hint">Tip: use a short burst, then record 3–10s for crisp results.</div>
   </div>
@@ -171,6 +174,7 @@ app.innerHTML = `
         <button id="stop">Stop</button>
         <button class="primary" id="record">Start recording</button>
         <button id="download" disabled>Download WebM</button>
+        <button id="exportPngZip">Export PNG ZIP</button>
       </div>
 
       <div class="buttons" style="margin-top:10px;">
@@ -203,6 +207,7 @@ let selectedEffectIdx = 0
 let playbacks: PlaybackHandle[] = []
 let lastRecording: { blob: Blob; filename: string } | null = null
 let statusTimer: number | null = null
+let isExportingPngZip = false
 
 const presetItems: EffectConfig[] = [DEFAULT_EFFECT, ...PRESETS]
 for (const p of presetItems) {
@@ -345,6 +350,9 @@ function stopAll() {
 }
 
 function beginRecording() {
+  if (isExportingPngZip) {
+    throw new Error('PNG ZIP export is in progress.')
+  }
   setError(null)
   lastRecording = null
   setDownloadEnabled(false)
@@ -380,6 +388,55 @@ async function endRecording() {
   updateFfmpeg()
 }
 
+async function exportPngZip() {
+  if (isExportingPngZip) return
+  if (recorder.status.isRecording) {
+    throw new Error('Stop the current recording before exporting PNG ZIP.')
+  }
+
+  setError(null)
+  isExportingPngZip = true
+  setExportButtonState('Preparing…', true)
+  recStatusEl.textContent = 'Exporting PNG ZIP…'
+  stopAll()
+
+  try {
+    scene = readSceneForm()
+    syncSelectedEffectFromForm()
+    applyBackground()
+    const effects = scene.effects.map((e) => sanitizeEffect(e))
+    const durationSeconds = Math.max(...effects.map((e) => e.durationSeconds))
+    const renderSettings = sanitizeRenderSettings({
+      fps: CAPTURE_FPS,
+      duration: durationSeconds,
+      width: CANVAS_WIDTH,
+      height: CANVAS_HEIGHT,
+      dpr: EXPORT_DPR,
+    })
+
+    playbacks = effects.map((e) => playConfetti(confettiFx, e))
+    const zipBlob = await exportPngSequenceZip({
+      canvas: fxCanvas,
+      scene,
+      renderSettings,
+      waitForNextFrame: (dtSeconds) => wait(dtSeconds * 1000),
+      onProgress: (done, total) => {
+        setExportButtonState(`Export PNG ZIP (${done}/${total})`, true)
+      },
+    })
+
+    const filename = `confetti_frames_${timestamp()}.zip`
+    downloadBlob(zipBlob, filename)
+  } finally {
+    stopPlaybacks()
+    confettiFx.reset()
+    applyBackground()
+    isExportingPngZip = false
+    recStatusEl.textContent = 'Idle'
+    setExportButtonState('Export PNG ZIP', false)
+  }
+}
+
 function updateFfmpeg() {
   const outMp4 = lastRecording ? lastRecording.filename.replace(/\.webm$/i, '.mp4') : 'output.mp4'
   const cmd = `ffmpeg -i "${lastRecording ? lastRecording.filename : 'input.webm'}" -c:v libx264 -pix_fmt yuv420p -r 60 "${outMp4}"`
@@ -411,6 +468,12 @@ function stopStatusTimer() {
 
 function setDownloadEnabled(enabled: boolean) {
   must<HTMLButtonElement>('download').disabled = !enabled
+}
+
+function setExportButtonState(label: string, disabled: boolean) {
+  const btn = must<HTMLButtonElement>('exportPngZip')
+  btn.textContent = label
+  btn.disabled = disabled
 }
 
 function timestamp() {
@@ -518,6 +581,17 @@ must<HTMLButtonElement>('download').addEventListener('click', () => {
   downloadBlob(lastRecording.blob, lastRecording.filename)
 })
 
+must<HTMLButtonElement>('exportPngZip').addEventListener('click', async () => {
+  try {
+    await exportPngZip()
+  } catch (e) {
+    setError(String(e instanceof Error ? e.message : e))
+    setExportButtonState('Export PNG ZIP', false)
+    recStatusEl.textContent = 'Idle'
+    isExportingPngZip = false
+  }
+})
+
 must<HTMLButtonElement>('export').addEventListener('click', async () => {
   try {
     setError(null)
@@ -597,4 +671,8 @@ must<HTMLButtonElement>('effectRemove').addEventListener('click', () => {
 function clampIdx(idx: number, length: number) {
   if (!Number.isFinite(idx)) return 0
   return Math.max(0, Math.min(length - 1, Math.floor(idx)))
+}
+
+function wait(ms: number) {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, Math.max(0, ms)))
 }
