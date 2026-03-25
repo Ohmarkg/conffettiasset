@@ -38,7 +38,7 @@ export interface SceneConfig {
 export const CANVAS_WIDTH = 1920
 export const CANVAS_HEIGHT = 1080
 export const CAPTURE_FPS = 60
-export const EXPORT_DPR = 2
+export const EXPORT_DPR = 1
 export const EXPORT_MIN_FPS = 1
 export const EXPORT_MAX_FPS = 120
 export const EXPORT_MIN_DURATION = 0.25

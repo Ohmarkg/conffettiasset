@@ -1,0 +1,33 @@
+{
+  "background": "transparent",
+  "backgroundColor": "#0b0b10",
+  "effects": [
+    {
+      "name": "Effect 1",
+      "mode": "burst",
+      "durationSeconds": 5,
+      "burstCount": 1,
+      "particleCount": 300,
+      "spread": 115,
+      "startVelocity": 90,
+      "gravity": 1.5,
+      "scalar": 1.5,
+      "decay": 0.9,
+      "fountainTicks": 260,
+      "angle": 90,
+      "originX": 0.5,
+      "originY": 1.15,
+      "shapes": [
+        "square",
+        "circle"
+      ],
+      "colors": [
+        "#ffffff",
+        "#FBBF24",
+        "#60A5FA",
+        "#34D399",
+        "#F472B6"
+      ]
+    }
+  ]
+}
