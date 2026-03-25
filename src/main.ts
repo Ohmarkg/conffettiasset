@@ -3,6 +3,7 @@ import './styles.css'
 import { createConfettiInstance, playConfetti, PRESETS, type PlaybackHandle } from './confetti'
 import { CanvasRecorder, downloadBlob } from './recorder'
 import { exportPngSequenceZip } from './pngSequence'
+import { buildExportRenderPreset } from './exportPreset'
 import {
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
@@ -404,24 +405,29 @@ async function exportPngZip() {
     scene = readSceneForm()
     syncSelectedEffectFromForm()
     applyBackground()
-    const effects = scene.effects.map((e) => sanitizeEffect(e))
-    const durationSeconds = Math.max(...effects.map((e) => e.durationSeconds))
+    const preset = buildExportRenderPreset(scene)
     const renderSettings = sanitizeRenderSettings({
       fps: CAPTURE_FPS,
-      duration: durationSeconds,
+      duration: preset.duration,
       width: CANVAS_WIDTH,
       height: CANVAS_HEIGHT,
       dpr: EXPORT_DPR,
     })
 
-    playbacks = effects.map((e) => playConfetti(confettiFx, e))
     const zipBlob = await exportPngSequenceZip({
-      canvas: fxCanvas,
       scene,
       renderSettings,
-      waitForNextFrame: (dtSeconds) => wait(dtSeconds * 1000),
-      onProgress: (done, total) => {
-        setExportButtonState(`Export PNG ZIP (${done}/${total})`, true)
+      onProgress: ({ frameIndex, totalFrames, phase }) => {
+        if (phase === 'zip') {
+          recStatusEl.textContent = 'Building ZIP...'
+          setExportButtonState('Building ZIP...', true)
+          return
+        }
+        if (Number.isFinite(frameIndex) && Number.isFinite(totalFrames)) {
+          const done = Number(frameIndex) + 1
+          recStatusEl.textContent = `Exporting frame ${done} / ${totalFrames}...`
+          setExportButtonState(`Export PNG ZIP (${done}/${totalFrames})`, true)
+        }
       },
     })
 
@@ -671,8 +677,4 @@ must<HTMLButtonElement>('effectRemove').addEventListener('click', () => {
 function clampIdx(idx: number, length: number) {
   if (!Number.isFinite(idx)) return 0
   return Math.max(0, Math.min(length - 1, Math.floor(idx)))
-}
-
-function wait(ms: number) {
-  return new Promise<void>((resolve) => window.setTimeout(resolve, Math.max(0, ms)))
 }
