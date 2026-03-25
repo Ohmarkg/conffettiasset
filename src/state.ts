@@ -45,6 +45,8 @@ export const EXPORT_MIN_DURATION = 0.25
 export const EXPORT_MAX_DURATION = 120
 export const EXPORT_MIN_DPR = 1
 export const EXPORT_MAX_DPR = 4
+export const ORIGIN_MIN = -0.25
+export const ORIGIN_MAX = 1.25
 
 export const DEFAULT_EFFECT: EffectConfig = {
   name: 'Effect 1',
@@ -116,8 +118,8 @@ export function sanitizeEffect(input: Partial<EffectConfig>): EffectConfig {
   cfg.fountainTicks = clamp(Math.round(Number(cfg.fountainTicks ?? DEFAULT_EFFECT.fountainTicks)), 30, 2000)
 
   cfg.angle = clamp(Number(cfg.angle ?? DEFAULT_EFFECT.angle), 0, 360)
-  cfg.originX = clamp(Number(cfg.originX ?? DEFAULT_EFFECT.originX), 0, 1)
-  cfg.originY = clamp(Number(cfg.originY ?? DEFAULT_EFFECT.originY), 0, 1)
+  cfg.originX = clamp(Number(cfg.originX ?? DEFAULT_EFFECT.originX), ORIGIN_MIN, ORIGIN_MAX)
+  cfg.originY = clamp(Number(cfg.originY ?? DEFAULT_EFFECT.originY), ORIGIN_MIN, ORIGIN_MAX)
 
   const shapes = Array.isArray(cfg.shapes) ? cfg.shapes : DEFAULT_EFFECT.shapes
   cfg.shapes = shapes

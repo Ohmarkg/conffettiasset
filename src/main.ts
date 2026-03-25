@@ -11,6 +11,8 @@ import {
   DEFAULT_EFFECT,
   DEFAULT_SCENE,
   EXPORT_DPR,
+  ORIGIN_MAX,
+  ORIGIN_MIN,
   paletteFromText,
   paletteToText,
   sanitizeEffect,
@@ -146,8 +148,8 @@ app.innerHTML = `
         <div>
           <label>Origin (x, y)</label>
           <div class="row two" style="margin:0;">
-            <input id="originX" type="number" min="0" max="1" step="0.01" />
-            <input id="originY" type="number" min="0" max="1" step="0.01" />
+            <input id="originX" type="number" min="${ORIGIN_MIN}" max="${ORIGIN_MAX}" step="0.01" />
+            <input id="originY" type="number" min="${ORIGIN_MIN}" max="${ORIGIN_MAX}" step="0.01" />
           </div>
         </div>
       </div>
